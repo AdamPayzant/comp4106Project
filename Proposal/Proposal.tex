@@ -1,0 +1,45 @@
+\documentclass[]{article}
+
+\usepackage{geometry}
+\usepackage{setspace}
+
+\geometry{margin=1in}
+\onehalfspacing
+
+\begin{document}
+    % Title section done like this because I only get 1 page
+    \begin{center}
+        {\huge \textbf{Settlers of Catan AI}} \\
+        {\large COMP4106 Final Project \\~\\
+
+        Edward ``Adam'' Payzant \\
+        \texttt{SN: 101082175}}
+    \end{center}
+
+    \section{Problem Space}
+
+    Playing conventional board games has always been an area of focus for AI research and proof of ability.
+    With many of the traditional tabletop games being solved by AI, many hobbiest projects have moved on to compete in games with more complicated rulesets.
+    To this end, I intend to implement an AI that can competently play the popular board game ``Settlers of Catan'' with 1-3 other players.
+
+    \section{Implementation Plan}
+
+    Catan poses an interesting challenge to implement an AI. 
+    The obvious choice is to implement a minimax system, but this poses it's own challenge.
+    The game does have a true points scoring system, but until a player achieves 10 points (the victory state), scores can be highly deceptive.
+    Constructing any one road will not benefit the score at all, but having the longest continious road over the length of 5 gets 2 victory.
+    Additionally, the every player on their turn has the option to trade.
+    This means that the AI must be able to consider what goals the other players are working towards, and therefore minimizing the benefit to it's opponents while maximizing it's own.
+
+    With all of these challenges considered, I plan on implementing a model-based reflexive agent, where actions will be determined by minimaxing.
+    The agent will be storing a record of known information that other players give out.
+    All resource transactions are public information, so using these in addition to what resources the opposing players are seeking, the agent can better guess the current goals of the opponents.
+    With all of this information in mind, the agent will then perform a minimax, favoring progress towards the highest value feasible victory points gain.
+    
+    \section{Deliverables}
+
+    This project will comprise of one main deliverable, containing the AI and an AI parsable version of ``Settlers of Catan''.
+    As some games can run somewhat long, an additional video demonstration of the AI will be packaged for ease of evaluation targets.
+    Success will be evaluated by the AI's ability to win an average game in under 20 turns.
+    
+\end{document}
