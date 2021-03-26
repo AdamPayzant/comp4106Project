@@ -93,18 +93,12 @@ class Node:
         self.port = port
         self.tiles = tiles
 
-class Graph:
-    def __init__(self):
-        pass
-
 class Map:
     tiles = []
     nodes = []
-    graph = Graph()
 
     def __init__(self):
         self.__genMap()
-        pass
 
     def __genMap(self):
         # Generate the Tiles
@@ -124,12 +118,13 @@ class Map:
         # I know, I know, this is really bad
         # I was trying to grind this part out quickly and it ballooned pretty bad
         for row in range(0, len(ROWLENS)):
-            nodes[row] = []
+            nodes.append([])
             # The first row
             if row == 0:
                 for j in range(0, ROWLENS[row]):
+                    print(j)
                     t = []
-                    if j < len(ROWLENS[row])-1:
+                    if j < ROWLENS[row]-1:
                         t.append(self.tiles[j//2 + TILEOFF[row]])
                     if j > 0 and row % 2 == 0:
                         t.append(self.tiles[j//2 - 1 +TILEOFF[row]])
@@ -143,37 +138,37 @@ class Map:
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert2.append(node)
-                        vert3.append(node)
-                    elif j < ROWLENS[row] - 1:
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
+                    elif j == ROWLENS[row] - 1:
                         vert1 = nodes[row][j - 1].vertex[2]
                         vert2 = Vertex
                         vert3 = None
 
-                        vert1.append(node)
-                        vert2.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
                     elif j % 2 == 0:
                         vert1 = nodes[row][j - 1].vertex[2]
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert3.nodes.append(node)
                     else:
                         vert1 = nodes[row][j - 1].vertex[2]
                         vert2 = None
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert3.nodes.append(node)
 
                     node.vertex = [vert1, vert2, vert3]
+                    nodes[row].append(node)
             # The last row
             elif row == len(ROWLENS) - 1:
                 for j in range(0, ROWLENS[row]):
                     t = []
-                    if j < len(ROWLENS[row])-1:
+                    if j < ROWLENS[row]-1:
                         t.append(self.tiles[j//2 + TILEOFF[row]])
                     if j > 0 and row % 2 == 0:
                         t.append(self.tiles[j//2 - 1 +TILEOFF[row]])
@@ -187,39 +182,40 @@ class Map:
                         vert2 = nodes[row-1][j-1].vertex[1]
                         vert3 = Vertex()
 
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     elif j == ROWLENS[row] - 1:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = nodes[row-1][j-1].vertex[1]
                         vert3 = None
 
-                        vert1.append(node)
-                        vert2.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
                     elif j % 2 == 0:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = None
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert3.nodes.append(node)
                     else:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
 
                     node.vertex = [vert1, vert2, vert3]
+                    nodes[row].append(node)
             # Row Length is increasing
             elif ROWLENS[row] > ROWLENS[row - 1]:
                 for j in range(0, ROWLENS[row]):
                     t = []
                     if j == 0:
                         t.append(self.tiles[TILEOFF[row]])
-                    elif j == len(ROWLENS[row]) - 1:
+                    elif j == ROWLENS[row] - 1:
                         t.append(self.tiles[j//2 + TILEOFF[row] - 1])
                     elif j % 2 == 0:
                         t.append(self.tiles[j//2 + TILEOFF[row] - 1])
@@ -229,7 +225,7 @@ class Map:
                         if j == 1:
                             t.append(self.tiles[TILEOFF[row]])
                             t.append(self.tiles[TILEOFF[row-1]])
-                        elif j == len(ROWLENS[row]) - 2:
+                        elif j == ROWLENS[row] - 2:
                             t.append(self.tiles[j//2 + TILEOFF[row]])
                             t.append(self.tiles[TILEOFF[row] - 1])
                         else:
@@ -246,33 +242,34 @@ class Map:
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     elif j % 2 == 0:
                         vert1 = nodes[row][j - 1].vertex[2]
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     else:
                         vert1 = nodes[row][j - 1].vertex[2]
                         vert2 = nodes[row-1][j-1].vertex[1]
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
 
                     node.vertex = [vert1, vert2, vert3]
+                    nodes[row].append(node)
             # Row length is staying the same
             elif ROWLENS[row] == ROWLENS[row - 1]:
                 for j in range(0, ROWLENS[row]):
                     t = []
                     if j == 0:
                         t.append(self.tiles[TILEOFF[row]])
-                    elif j == len(ROWLENS[row]) - 1:
+                    elif j == ROWLENS[row] - 1:
                         t.append(self.tiles[TILEOFF[row+1] - 1])
                     elif j % 2 == 0:
                         t.append(self.tiles[j//2 + TILEOFF[row]])
@@ -282,7 +279,7 @@ class Map:
                         if j == 1:
                             t.append(self.tiles[TILEOFF[row+1]])
                             t.append(self.tiles[TILEOFF[row]])
-                        elif j == len(ROWLENS[row]) - 2:
+                        elif j == ROWLENS[row] - 2:
                             t.append(self.tiles[j//2 - 1 + TILEOFF[row+1]])
                             t.append(self.tiles[j//2 + TILEOFF[row]])
                         else:
@@ -299,33 +296,34 @@ class Map:
                         vert2 = nodes[row-1][j].vertex[1]
                         vert3 = Vertex()
 
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     elif j % 2 == 0:
                         vert1 = nodes[row][j - 1].vertex[2]
                         vert2 = nodes[row-1][j].vertex[1]
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     else:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
 
                     node.vertex = [vert1, vert2, vert3]
+                    nodes[row].append(node)
             # Row length is decreasing
             else:
                 for j in range(0, ROWLENS[row]):
                     t = []
                     if j == 0:
                         t.append(self.tiles[TILEOFF[row]])
-                    elif j == len(ROWLENS[row]) - 1:
+                    elif j == ROWLENS[row] - 1:
                         t.append(self.tiles[TILEOFF[row+1] - 1])
                     elif j % 2 == 0:
                         t.append(self.tiles[j//2 + TILEOFF[row]])
@@ -335,7 +333,7 @@ class Map:
                         if j == 1:
                             t.append(self.tiles[TILEOFF[row+1]])
                             t.append(self.tiles[TILEOFF[row]])
-                        elif j == len(ROWLENS[row]) - 2:
+                        elif j == ROWLENS[row] - 2:
                             t.append(self.tiles[j//2 - 1 + TILEOFF[row+1]])
                             t.append(self.tiles[j//2 + TILEOFF[row]])
                         else:
@@ -352,31 +350,35 @@ class Map:
                         vert2 = nodes[row-1][j-1].vertex[1]
                         vert3 = Vertex()
 
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     elif j == ROWLENS[row] - 1:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = nodes[row-1][j-1].vertex[1]
                         vert3 = None
 
-                        vert1.append(node)
-                        vert2.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
                     elif j % 2 == 0:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = nodes[row-1][j-1].vertex[1]
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
                     else:
                         vert1 = nodes[row][j-1].vertex[2]
                         vert2 = Vertex()
                         vert3 = Vertex()
 
-                        vert1.append(node)
-                        vert2.append(node)
-                        vert3.append(node)
+                        vert1.nodes.append(node)
+                        vert2.nodes.append(node)
+                        vert3.nodes.append(node)
 
                     node.vertex = [vert1, vert2, vert3]
+                    nodes[row].append(node)
         self.nodes = nodes
+
+    def printMap(self):
+        print(self.nodes)
