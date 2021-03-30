@@ -77,7 +77,7 @@ class Port:
         self.res = res
         self.cost = cost
 
-class Vertex:
+class Edge:
     nodes = []
     road = 0 # player numbers, 0 means no road
     index = 0
@@ -86,16 +86,22 @@ class Node:
     index = 0
     port = None
     building = 0 # 0 for nothing, 1 for settlement, 2 for city
-    vertex = []
+    edge = []
     tiles = []
     def __init__(self, index, tiles, port = None):
         self.index = index
         self.port = port
         self.tiles = tiles
 
+    def softCopy(self):
+        n = Node(self.index, self.tiles, self.port)
+        n.edge = self.edge
+        return n
+
 class Map:
     tiles = []
     nodes = []
+    longest_road = 1
 
     def __init__(self):
         self.__genMap()
@@ -134,35 +140,35 @@ class Map:
                     node = Node(sum + j, t)
 
                     if j == 0:
-                        vert1 = None
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = None
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     elif j == ROWLENS[row] - 1:
-                        vert1 = nodes[row][j - 1].vertex[2]
-                        vert2 = Vertex
-                        vert3 = None
+                        edge1 = nodes[row][j - 1].edge[2]
+                        edge2 = Edge
+                        edge3 = None
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
                     elif j % 2 == 0:
-                        vert1 = nodes[row][j - 1].vertex[2]
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j - 1].edge[2]
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge3.nodes.append(node)
                     else:
-                        vert1 = nodes[row][j - 1].vertex[2]
-                        vert2 = None
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j - 1].edge[2]
+                        edge2 = None
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge3.nodes.append(node)
 
-                    node.vertex = [vert1, vert2, vert3]
+                    node.edge = [edge1, edge2, edge3]
                     nodes[row].append(node)
             # The last row
             elif row == len(ROWLENS) - 1:
@@ -178,36 +184,36 @@ class Map:
                     node = Node(sum + j, t)
 
                     if j == 0:
-                        vert1 = None
-                        vert2 = nodes[row-1][j-1].vertex[1]
-                        vert3 = Vertex()
+                        edge1 = None
+                        edge2 = nodes[row-1][j-1].edge[1]
+                        edge3 = Edge()
 
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     elif j == ROWLENS[row] - 1:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = nodes[row-1][j-1].vertex[1]
-                        vert3 = None
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = nodes[row-1][j-1].edge[1]
+                        edge3 = None
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
                     elif j % 2 == 0:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = None
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = None
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge3.nodes.append(node)
                     else:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
 
-                    node.vertex = [vert1, vert2, vert3]
+                    node.edge = [edge1, edge2, edge3]
                     nodes[row].append(node)
             # Row Length is increasing
             elif ROWLENS[row] > ROWLENS[row - 1]:
@@ -238,30 +244,30 @@ class Map:
                     node = Node(sum + j, t)
 
                     if j == 0:
-                        vert1 = None
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = None
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     elif j % 2 == 0:
-                        vert1 = nodes[row][j - 1].vertex[2]
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j - 1].edge[2]
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     else:
-                        vert1 = nodes[row][j - 1].vertex[2]
-                        vert2 = nodes[row-1][j-1].vertex[1]
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j - 1].edge[2]
+                        edge2 = nodes[row-1][j-1].edge[1]
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
 
-                    node.vertex = [vert1, vert2, vert3]
+                    node.edge = [edge1, edge2, edge3]
                     nodes[row].append(node)
             # Row length is staying the same
             elif ROWLENS[row] == ROWLENS[row - 1]:
@@ -292,30 +298,30 @@ class Map:
                     node = Node(sum + j, t)
 
                     if j == 0:
-                        vert1 = None
-                        vert2 = nodes[row-1][j].vertex[1]
-                        vert3 = Vertex()
+                        edge1 = None
+                        edge2 = nodes[row-1][j].edge[1]
+                        edge3 = Edge()
 
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     elif j % 2 == 0:
-                        vert1 = nodes[row][j - 1].vertex[2]
-                        vert2 = nodes[row-1][j].vertex[1]
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j - 1].edge[2]
+                        edge2 = nodes[row-1][j].edge[1]
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     else:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
 
-                    node.vertex = [vert1, vert2, vert3]
+                    node.edge = [edge1, edge2, edge3]
                     nodes[row].append(node)
             # Row length is decreasing
             else:
@@ -346,39 +352,42 @@ class Map:
                     node = Node(sum + j, t)
 
                     if j == 0:
-                        vert1 = None
-                        vert2 = nodes[row-1][j-1].vertex[1]
-                        vert3 = Vertex()
+                        edge1 = None
+                        edge2 = nodes[row-1][j-1].edge[1]
+                        edge3 = Edge()
 
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     elif j == ROWLENS[row] - 1:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = nodes[row-1][j-1].vertex[1]
-                        vert3 = None
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = nodes[row-1][j-1].edge[1]
+                        edge3 = None
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
                     elif j % 2 == 0:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = nodes[row-1][j-1].vertex[1]
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = nodes[row-1][j-1].edge[1]
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
                     else:
-                        vert1 = nodes[row][j-1].vertex[2]
-                        vert2 = Vertex()
-                        vert3 = Vertex()
+                        edge1 = nodes[row][j-1].edge[2]
+                        edge2 = Edge()
+                        edge3 = Edge()
 
-                        vert1.nodes.append(node)
-                        vert2.nodes.append(node)
-                        vert3.nodes.append(node)
+                        edge1.nodes.append(node)
+                        edge2.nodes.append(node)
+                        edge3.nodes.append(node)
 
-                    node.vertex = [vert1, vert2, vert3]
+                    node.edge = [edge1, edge2, edge3]
                     nodes[row].append(node)
         self.nodes = nodes
 
     def printMap(self):
         print(self.nodes)
+
+class Card:
+    name  = ""

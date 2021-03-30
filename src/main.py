@@ -1,4 +1,4 @@
-from settlers import *
+from settlers import Game
 
 game = Game()
 print("Starting game")
