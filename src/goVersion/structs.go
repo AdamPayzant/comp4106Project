@@ -583,3 +583,7 @@ func NewBoard() Board {
 
 	return m
 }
+
+func newGame() Game {
+	return Game{}
+}
