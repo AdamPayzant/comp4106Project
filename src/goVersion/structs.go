@@ -22,6 +22,21 @@ var rowoff = [...]int{
 	16,
 }
 
+var diceOdds = [...]float32{
+	0,
+	.028,
+	.056,
+	.083,
+	.111,
+	.139,
+	.167,
+	.139,
+	.111,
+	.083,
+	.056,
+	.028,
+}
+
 type Tile struct {
 	roll   int
 	bandit bool
@@ -57,6 +72,7 @@ type Player struct {
 	number        int
 
 	villages []*Node
+	roads    []*Edge
 
 	res   map[string]int
 	cards []string
