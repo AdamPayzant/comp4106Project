@@ -603,3 +603,7 @@ func NewBoard() Board {
 func newGame() Game {
 	return Game{}
 }
+
+func PrintBoard(board Board) {
+
+}
