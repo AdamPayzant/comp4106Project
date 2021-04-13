@@ -320,6 +320,23 @@ func NewBoard() Board {
 					n.edges = append(n.edges, edge1, edge2, &edge3)
 				} else if j%2 == 0 {
 					edge1 := temp[j-1].edges[2]
+					edge2 := nodes[i-1][j+1].edges[1]
+					edge3 := Edge{}
+
+					fmt.Println(edge2.index)
+
+					edge1.nodes = append(edge1.nodes, &n)
+					edge2.nodes = append(edge2.nodes, &n)
+					edge3.inUse = true
+					edge3.road = -1
+					edge3.index = edgeCounter
+					edge3.nodes = append(edge3.nodes, &n)
+					edgeCounter += 1
+
+					edges = append(edges, &edge3)
+					n.edges = append(n.edges, edge1, edge2, &edge3)
+				} else {
+					edge1 := temp[j-1].edges[2]
 					edge2 := Edge{} // Unused
 					edge3 := Edge{}
 
@@ -332,21 +349,6 @@ func NewBoard() Board {
 
 					edges = append(edges, &edge3)
 					n.edges = append(n.edges, edge1, &edge2, &edge3)
-				} else {
-					edge1 := temp[j-1].edges[2]
-					edge2 := nodes[i-1][j+1].edges[1]
-					edge3 := Edge{}
-
-					edge1.nodes = append(edge1.nodes, &n)
-					edge2.nodes = append(edge2.nodes, &n)
-					edge3.inUse = true
-					edge3.road = -1
-					edge3.index = edgeCounter
-					edge3.nodes = append(edge3.nodes, &n)
-					edgeCounter += 1
-
-					edges = append(edges, &edge3)
-					n.edges = append(n.edges, edge1, edge2, &edge3)
 				}
 				temp = append(temp, &n)
 			}
@@ -501,17 +503,11 @@ func NewBoard() Board {
 				} else if j == rowlens[i]-1 {
 					edge1 := temp[j-1].edges[2]
 					edge2 := nodes[i-1][j+1].edges[1]
-					edge3 := Edge{}
+					edge3 := Edge{} // Unused
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
-					edge3.inUse = true
-					edge3.road = -1
-					edge3.index = edgeCounter
-					edge3.nodes = append(edge3.nodes, &n)
-					edgeCounter += 1
 
-					edges = append(edges, &edge3)
 					n.edges = append(n.edges, edge1, edge2, &edge3)
 				} else if j%2 == 0 {
 					edge1 := temp[j-1].edges[2]
@@ -724,377 +720,4 @@ func PrintGame(game Game) {
 		playerColor[i].Printf("Player %d \n", i+1)
 	}
 
-	for i := 0; i < len(game.board.edges); i++ {
-		fmt.Printf("%d, ", game.board.edges[i].index)
-	}
-
-	fmt.Print("            ")
-	for i := 0; i < 3; i++ {
-		if game.board.nodes[i].owner == -1 {
-			none.Print("*")
-		} else {
-			playerColor[game.board.nodes[i].owner].Print("*")
-		}
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("          ")
-	for i := 0; i < 6; i++ {
-		if game.board.edges[i].road == -1 {
-			if i%2 == 0 {
-				none.Print("/")
-			} else {
-				none.Print("\\")
-			}
-		} else {
-			if i%2 == 0 {
-				playerColor[game.board.edges[i].road].Print("/")
-			} else {
-				playerColor[game.board.edges[i].road].Print("\\")
-			}
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("        ")
-	if game.board.nodes[3].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[3].owner].Print("*   ")
-	}
-	for i := 0; i < 3; i++ {
-		fmt.Print(game.board.tiles[i].res)
-		fmt.Print("   ")
-		if game.board.nodes[i+4].owner == -1 {
-			none.Print("*")
-		} else {
-			playerColor[game.board.nodes[i+4].owner].Print("*   ")
-		}
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("        ")
-	for i := 6; i < 10; i++ {
-		if game.board.edges[i].road == -1 {
-			none.Print("|")
-		} else {
-			playerColor[game.board.edges[i].road].Print("|")
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("        ")
-	if game.board.nodes[7].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[7].owner].Print("*   ")
-	}
-	for i := 0; i < 3; i++ {
-		fmt.Printf("%-2d", game.board.tiles[i].roll)
-		fmt.Print("  ")
-		if game.board.nodes[i+7].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+7].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("      ")
-	for i := 10; i < 18; i++ {
-		if game.board.edges[i].road == -1 {
-			if i%2 == 0 {
-				none.Print("/")
-			} else {
-				none.Print("\\")
-			}
-		} else {
-			if i%2 == 0 {
-				playerColor[game.board.edges[i].road].Print("/")
-			} else {
-				playerColor[game.board.edges[i].road].Print("\\")
-			}
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("    ")
-	if game.board.nodes[11].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[11].owner].Print("*   ")
-	}
-	for i := 0; i < 4; i++ {
-		fmt.Print(game.board.tiles[i+3].res)
-		fmt.Print("   ")
-		if game.board.nodes[i+12].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+12].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("    ")
-	for i := 18; i < 23; i++ {
-		if game.board.edges[i].road == -1 {
-			none.Print("|")
-		} else {
-			playerColor[game.board.edges[i].road].Print("|")
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("    ")
-	if game.board.nodes[16].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[16].owner].Print("*   ")
-	}
-	for i := 0; i < 4; i++ {
-		fmt.Printf("%-2d", game.board.tiles[i+3].roll)
-		fmt.Print("  ")
-		if game.board.nodes[i+17].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+17].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("  ")
-	for i := 23; i < 33; i++ {
-		if game.board.edges[i].road == -1 {
-			if i%2 != 0 {
-				none.Print("/")
-			} else {
-				none.Print("\\")
-			}
-		} else {
-			if i%2 != 0 {
-				playerColor[game.board.edges[i].road].Print("/")
-			} else {
-				playerColor[game.board.edges[i].road].Print("\\")
-			}
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	if game.board.nodes[21].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[21].owner].Print("*   ")
-	}
-	for i := 0; i < 5; i++ {
-		fmt.Print(game.board.tiles[i+8].res)
-		fmt.Print("   ")
-		if game.board.nodes[i+22].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+22].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	for i := 33; i < 39; i++ {
-		if game.board.edges[i].road == -1 {
-			none.Print("|")
-		} else {
-			playerColor[game.board.edges[i].road].Print("|")
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
-
-	if game.board.nodes[27].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[27].owner].Print("*   ")
-	}
-	for i := 0; i < 5; i++ {
-		fmt.Printf("%-2d", game.board.tiles[i+8].roll)
-		fmt.Print("  ")
-		if game.board.nodes[i+28].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+28].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("  ")
-	for i := 39; i < 49; i++ {
-		if game.board.edges[i].road == -1 {
-			if i%2 == 0 {
-				none.Print("/")
-			} else {
-				none.Print("\\")
-			}
-		} else {
-			if i%2 != 0 {
-				playerColor[game.board.edges[i].road].Print("/")
-			} else {
-				playerColor[game.board.edges[i].road].Print("\\")
-			}
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("    ")
-	if game.board.nodes[33].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[33].owner].Print("*   ")
-	}
-	for i := 0; i < 4; i++ {
-		fmt.Print(game.board.tiles[i+13].res)
-		fmt.Print("   ")
-		if game.board.nodes[i+34].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+34].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("    ")
-	for i := 49; i < 54; i++ {
-		if game.board.edges[i].road == -1 {
-			none.Print("|")
-		} else {
-			playerColor[game.board.edges[i].road].Print("|")
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("    ")
-	if game.board.nodes[38].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[38].owner].Print("*   ")
-	}
-	for i := 0; i < 4; i++ {
-		fmt.Printf("%-2d", game.board.tiles[i+13].roll)
-		fmt.Print("  ")
-		if game.board.nodes[i+39].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+39].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("      ")
-	for i := 54; i < 62; i++ {
-		if game.board.edges[i].road == -1 {
-			if i%2 == 0 {
-				none.Print("/")
-			} else {
-				none.Print("\\")
-			}
-		} else {
-			if i%2 == 0 {
-				playerColor[game.board.edges[i].road].Print("/")
-			} else {
-				playerColor[game.board.edges[i].road].Print("\\")
-			}
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("        ")
-	if game.board.nodes[43].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[43].owner].Print("*   ")
-	}
-	for i := 0; i < 3; i++ {
-		fmt.Print(game.board.tiles[i+16].res)
-		fmt.Print("   ")
-		if game.board.nodes[i+44].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+44].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("        ")
-	for i := 62; i < 66; i++ {
-		if game.board.edges[i].road == -1 {
-			none.Print("|")
-		} else {
-			playerColor[game.board.edges[i].road].Print("|")
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("        ")
-	if game.board.nodes[47].owner == -1 {
-		none.Print("*   ")
-	} else {
-		playerColor[game.board.nodes[47].owner].Print("*   ")
-	}
-	for i := 0; i < 3; i++ {
-		fmt.Printf("%-2d", game.board.tiles[i+16].roll)
-		fmt.Print("  ")
-		if game.board.nodes[i+48].owner == -1 {
-			none.Print("*   ")
-		} else {
-			playerColor[game.board.nodes[i+48].owner].Print("*   ")
-		}
-	}
-	fmt.Print("\n")
-
-	fmt.Print("          ")
-	for i := 66; i < 73; i++ {
-		if game.board.edges[i].road == -1 {
-			if i%2 != 0 {
-				none.Print("/")
-			} else {
-				none.Print("\\")
-			}
-		} else {
-			if i%2 != 0 {
-				playerColor[game.board.edges[i].road].Print("/")
-			} else {
-				playerColor[game.board.edges[i].road].Print("\\")
-			}
-		}
-		fmt.Printf("%d", game.board.edges[i].index) // !Remove
-		fmt.Print("   ")
-	}
-	fmt.Print("\n")
-
-	fmt.Print("            ")
-	for i := len(game.board.nodes) - 3; i < len(game.board.nodes); i++ {
-		if game.board.nodes[i].owner == -1 {
-			none.Print("*")
-		} else {
-			playerColor[game.board.nodes[i].owner].Print("*")
-		}
-		fmt.Print("       ")
-	}
-	fmt.Print("\n")
 }
