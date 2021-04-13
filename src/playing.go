@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -13,9 +12,7 @@ const (
 func main() {
 	// Game setup
 	game := newGame(false)
-	for i := 0; i < len(game.board.edges); i++ {
-		fmt.Printf("%2d: %d \n", game.board.edges[i].index, len(game.board.edges[i].nodes))
-	}
+
 	PrintGame(game)
 	var i int
 	for i = 0; i < len(game.players); i++ {
