@@ -1,8 +1,16 @@
 package main
 
+/*
+After writing this file with very little thought, the code in here has become very messy and gross
+In my defense, everything's kinda magic number-y in how it needs to be done, so a programmatic approach was not obvious
+*/
+
 import (
+	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 var rowlens = [...]int{
@@ -92,8 +100,10 @@ type Move struct {
 }
 
 type Game struct {
-	players []*Player
+	players [4]*Player
 	board   Board
+
+	cards [26]string
 
 	longestRoad int
 	lrPlayer    int
@@ -101,28 +111,30 @@ type Game struct {
 	laPlayer    int
 }
 
+// We don't talk about this function
+// Just act like it magically works
 func NewBoard() Board {
 	m := Board{}
 	tiles := [...]string{
-		"wo",
-		"wo",
-		"wo",
-		"wo",
-		"wh",
-		"wh",
-		"wh",
-		"wh",
-		"sh",
-		"sh",
-		"sh",
-		"sh",
-		"cl",
-		"cl",
-		"cl",
-		"ir",
-		"ir",
-		"ir",
-		"de",
+		"L", // Lumber
+		"L",
+		"L",
+		"L",
+		"W", // Wheat
+		"W",
+		"W",
+		"W",
+		"S", // Wool
+		"S",
+		"S",
+		"S",
+		"B", // Bruck
+		"B",
+		"B",
+		"O", // Ore
+		"O",
+		"O",
+		"D", // Desert
 	}
 	rolls := [...]int{
 		2,
@@ -155,14 +167,22 @@ func NewBoard() Board {
 	}
 
 	des := 0
-	for i := 0; i < len(rolls); i++ {
-		if tiles[i] != "de" {
+	for i := 0; i < len(tiles); i++ {
+		if tiles[i] != "D" {
 			t := Tile{
-				roll:   rolls[i],
+				roll:   rolls[i-des],
 				bandit: false,
-				res:    tiles[i+des],
+				res:    tiles[i],
 			}
 			m.tiles = append(m.tiles, &t)
+		} else {
+			t := Tile{
+				roll:   7,
+				bandit: true,
+				res:    tiles[i],
+			}
+			m.tiles = append(m.tiles, &t)
+			des += 1
 		}
 	}
 
@@ -170,17 +190,18 @@ func NewBoard() Board {
 	var edges []*Edge
 	edgeCounter := 0
 	for i := 0; i < len(rowlens); i++ {
-		temp := make([]*Node, rowlens[i])
+		temp := []*Node{}
 		if i == 0 { // First row
 			for j := 0; j < rowlens[i]; j++ {
 				n := Node{}
+				n.owner = -1
 
 				var t []*Tile
 				if j < rowlens[i]-1 {
-					t = append(t, m.tiles[j/2+rowoff[i]])
+					t = append(t, m.tiles[j/2])
 				}
-				if j > 0 && i%2 == 0 {
-					t = append(t, m.tiles[j/2+rowoff[i]-1])
+				if j > 0 && j%2 == 0 {
+					t = append(t, m.tiles[j/2-1])
 				}
 				sum := 0
 				for s := 0; s <= i; s++ {
@@ -195,9 +216,11 @@ func NewBoard() Board {
 					edge3 := Edge{}
 
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter + 1
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 2
@@ -211,6 +234,7 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edgeCounter += 1
@@ -224,9 +248,11 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter + 1
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 2
@@ -240,6 +266,7 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -252,12 +279,13 @@ func NewBoard() Board {
 		} else if i == 5 { // Last row
 			for j := 0; j < rowlens[i]; j++ {
 				n := Node{}
+				n.owner = -1
 
 				var t []*Tile
 				if j < rowlens[i]-1 {
 					t = append(t, m.tiles[j/2+rowoff[i]])
 				}
-				if j > 0 && i%2 == 0 {
+				if j > 0 && j%2 == 0 {
 					t = append(t, m.tiles[j/2+rowoff[i]-1])
 				}
 				sum := 0
@@ -274,7 +302,8 @@ func NewBoard() Board {
 
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
-					edge3.index = edgeCounter + 1
+					edge3.road = -1
+					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
 
@@ -296,11 +325,12 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge3.inUse = true
-					edge3.index = edgeCounter + 1
+					edge3.road = -1
+					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
 
-					edges = append(edges, &edge2, &edge3)
+					edges = append(edges, &edge3)
 					n.edges = append(n.edges, edge1, &edge2, &edge3)
 				} else {
 					edge1 := temp[j-1].edges[2]
@@ -310,6 +340,7 @@ func NewBoard() Board {
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -322,12 +353,13 @@ func NewBoard() Board {
 		} else if rowlens[i] > rowlens[i-1] { // Row size increasing
 			for j := 0; j < rowlens[i]; j++ {
 				n := Node{}
+				n.owner = -1
 
 				var t []*Tile
 				if j == 0 {
 					t = append(t, m.tiles[rowoff[i]])
 				} else if j == rowlens[i]-1 {
-					t = append(t, m.tiles[j/2+rowoff[i]-1])
+					t = append(t, m.tiles[rowoff[i+1]-1])
 				} else if j%2 == 0 {
 					t = append(t, m.tiles[j/2+rowoff[i]-1])
 					t = append(t, m.tiles[j/2+rowoff[i]])
@@ -337,7 +369,7 @@ func NewBoard() Board {
 						t = append(t, m.tiles[rowoff[i]])
 						t = append(t, m.tiles[rowoff[i-1]])
 					} else if j == rowlens[i]-2 {
-						t = append(t, m.tiles[j/2+rowoff[i]])
+						t = append(t, m.tiles[rowoff[i+1]-1])
 						t = append(t, m.tiles[rowoff[i]-1])
 					} else {
 						t = append(t, m.tiles[j/2+rowoff[i-1]-1])
@@ -358,12 +390,14 @@ func NewBoard() Board {
 					edge3 := Edge{}
 
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter + 1
 					edge3.nodes = append(edge3.nodes, &n)
-					edgeCounter += 3
+					edgeCounter += 2
 
 					edges = append(edges, &edge2, &edge3)
 					n.edges = append(n.edges, &edge1, &edge2, &edge3)
@@ -374,6 +408,7 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edgeCounter += 1
@@ -387,13 +422,14 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter + 1
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 2
-
 					edges = append(edges, &edge2, &edge3)
 					n.edges = append(n.edges, edge1, &edge2, &edge3)
 				} else {
@@ -404,6 +440,7 @@ func NewBoard() Board {
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -416,6 +453,7 @@ func NewBoard() Board {
 		} else if rowlens[i] < rowlens[i-1] { // Row size decreasing
 			for j := 0; j < rowlens[i]; j++ {
 				n := Node{}
+				n.owner = -1
 
 				var t []*Tile
 				if j == 0 {
@@ -453,6 +491,7 @@ func NewBoard() Board {
 
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -467,6 +506,7 @@ func NewBoard() Board {
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -481,6 +521,7 @@ func NewBoard() Board {
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -494,21 +535,24 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter + 1
 					edge3.nodes = append(edge3.nodes, &n)
-					edgeCounter += 1
+					edgeCounter += 2
 
 					edges = append(edges, &edge2, &edge3)
 					n.edges = append(n.edges, edge1, &edge2, &edge3)
 				}
 				temp = append(temp, &n)
 			}
-		} else {
-			for j := 0; j < rowlens[i]; j++ { // Row size staying the same
+		} else { // Row size staying the same
+			for j := 0; j < rowlens[i]; j++ {
 				n := Node{}
+				n.owner = -1
 
 				var t []*Tile
 				if j == 0 {
@@ -546,6 +590,7 @@ func NewBoard() Board {
 
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -555,7 +600,7 @@ func NewBoard() Board {
 				} else if j == rowlens[i]-1 {
 					edge1 := temp[j-1].edges[2]
 					edge2 := nodes[i-1][j].edges[1]
-					edge3 := Edge{}
+					edge3 := Edge{} // Unused
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
@@ -569,6 +614,7 @@ func NewBoard() Board {
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter
 					edge3.nodes = append(edge3.nodes, &n)
 					edgeCounter += 1
@@ -582,11 +628,14 @@ func NewBoard() Board {
 
 					edge1.nodes = append(edge1.nodes, &n)
 					edge2.inUse = true
+					edge2.road = -1
 					edge2.index = edgeCounter
 					edge2.nodes = append(edge2.nodes, &n)
 					edge3.inUse = true
+					edge3.road = -1
 					edge3.index = edgeCounter + 1
 					edge3.nodes = append(edge3.nodes, &n)
+					edgeCounter += 2
 
 					edges = append(edges, &edge2, &edge3)
 					n.edges = append(n.edges, edge1, &edge2, &edge3)
@@ -596,14 +645,456 @@ func NewBoard() Board {
 		}
 		nodes = append(nodes, temp)
 	}
+	m.edges = edges
+	for i := 0; i < len(nodes); i++ {
+		for j := 0; j < len(nodes[i]); j++ {
+			m.nodes = append(m.nodes, nodes[i][j])
+		}
+	}
 
 	return m
 }
 
-func newGame() Game {
-	return Game{}
+func newGame(human bool) Game {
+	game := Game{}
+	game.board = NewBoard()
+
+	var cards = [...]string{
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"kn",
+		"vp",
+		"vp",
+		"vp",
+		"vp",
+		"vp",
+		"yo",
+		"yo",
+		"mo",
+		"mo",
+		"rb",
+		"rb",
+	}
+	rand.Seed(time.Now().UnixNano())
+	for i := len(cards) - 1; i > 0; i-- {
+		j := rand.Intn(i + 1)
+		cards[i], cards[j] = cards[j], cards[i]
+	}
+	game.cards = cards
+
+	game.players = [...]*Player{
+		&Player{},
+		&Player{},
+		&Player{},
+		&Player{},
+	}
+	if human {
+		game.players[rand.Intn(4)].human = true
+	}
+
+	return game
 }
 
-func PrintBoard(board Board) {
+// We also don't need to talk about this one
+// In fact, let's just ignore this whole file
+// This absolutely could have been done programmatically, but I was too far in to turn back and offsets are annoying
+func PrintGame(game Game) {
+	var playerColor = [4]*color.Color{
+		color.New(color.FgBlue),
+		color.New(color.FgRed),
+		color.New(color.FgMagenta),
+		color.New(color.FgGreen),
+	}
+	none := color.New(color.FgWhite)
+	fmt.Println("Player colors are:")
+	none.Println("No Player")
+	for i := 0; i < len(playerColor); i++ {
+		playerColor[i].Printf("Player %d \n", i+1)
+	}
 
+	for i := 0; i < len(game.board.edges); i++ {
+		fmt.Printf("%d, ", game.board.edges[i].index)
+	}
+
+	fmt.Print("            ")
+	for i := 0; i < 3; i++ {
+		if game.board.nodes[i].owner == -1 {
+			none.Print("*")
+		} else {
+			playerColor[game.board.nodes[i].owner].Print("*")
+		}
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("          ")
+	for i := 0; i < 6; i++ {
+		if game.board.edges[i].road == -1 {
+			if i%2 == 0 {
+				none.Print("/")
+			} else {
+				none.Print("\\")
+			}
+		} else {
+			if i%2 == 0 {
+				playerColor[game.board.edges[i].road].Print("/")
+			} else {
+				playerColor[game.board.edges[i].road].Print("\\")
+			}
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("        ")
+	if game.board.nodes[3].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[3].owner].Print("*   ")
+	}
+	for i := 0; i < 3; i++ {
+		fmt.Print(game.board.tiles[i].res)
+		fmt.Print("   ")
+		if game.board.nodes[i+4].owner == -1 {
+			none.Print("*")
+		} else {
+			playerColor[game.board.nodes[i+4].owner].Print("*   ")
+		}
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("        ")
+	for i := 6; i < 10; i++ {
+		if game.board.edges[i].road == -1 {
+			none.Print("|")
+		} else {
+			playerColor[game.board.edges[i].road].Print("|")
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("        ")
+	if game.board.nodes[7].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[7].owner].Print("*   ")
+	}
+	for i := 0; i < 3; i++ {
+		fmt.Printf("%-2d", game.board.tiles[i].roll)
+		fmt.Print("  ")
+		if game.board.nodes[i+7].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+7].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("      ")
+	for i := 10; i < 18; i++ {
+		if game.board.edges[i].road == -1 {
+			if i%2 == 0 {
+				none.Print("/")
+			} else {
+				none.Print("\\")
+			}
+		} else {
+			if i%2 == 0 {
+				playerColor[game.board.edges[i].road].Print("/")
+			} else {
+				playerColor[game.board.edges[i].road].Print("\\")
+			}
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("    ")
+	if game.board.nodes[11].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[11].owner].Print("*   ")
+	}
+	for i := 0; i < 4; i++ {
+		fmt.Print(game.board.tiles[i+3].res)
+		fmt.Print("   ")
+		if game.board.nodes[i+12].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+12].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("    ")
+	for i := 18; i < 23; i++ {
+		if game.board.edges[i].road == -1 {
+			none.Print("|")
+		} else {
+			playerColor[game.board.edges[i].road].Print("|")
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("    ")
+	if game.board.nodes[16].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[16].owner].Print("*   ")
+	}
+	for i := 0; i < 4; i++ {
+		fmt.Printf("%-2d", game.board.tiles[i+3].roll)
+		fmt.Print("  ")
+		if game.board.nodes[i+17].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+17].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("  ")
+	for i := 23; i < 33; i++ {
+		if game.board.edges[i].road == -1 {
+			if i%2 != 0 {
+				none.Print("/")
+			} else {
+				none.Print("\\")
+			}
+		} else {
+			if i%2 != 0 {
+				playerColor[game.board.edges[i].road].Print("/")
+			} else {
+				playerColor[game.board.edges[i].road].Print("\\")
+			}
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	if game.board.nodes[21].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[21].owner].Print("*   ")
+	}
+	for i := 0; i < 5; i++ {
+		fmt.Print(game.board.tiles[i+8].res)
+		fmt.Print("   ")
+		if game.board.nodes[i+22].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+22].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	for i := 33; i < 39; i++ {
+		if game.board.edges[i].road == -1 {
+			none.Print("|")
+		} else {
+			playerColor[game.board.edges[i].road].Print("|")
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
+
+	if game.board.nodes[27].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[27].owner].Print("*   ")
+	}
+	for i := 0; i < 5; i++ {
+		fmt.Printf("%-2d", game.board.tiles[i+8].roll)
+		fmt.Print("  ")
+		if game.board.nodes[i+28].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+28].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("  ")
+	for i := 39; i < 49; i++ {
+		if game.board.edges[i].road == -1 {
+			if i%2 == 0 {
+				none.Print("/")
+			} else {
+				none.Print("\\")
+			}
+		} else {
+			if i%2 != 0 {
+				playerColor[game.board.edges[i].road].Print("/")
+			} else {
+				playerColor[game.board.edges[i].road].Print("\\")
+			}
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("    ")
+	if game.board.nodes[33].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[33].owner].Print("*   ")
+	}
+	for i := 0; i < 4; i++ {
+		fmt.Print(game.board.tiles[i+13].res)
+		fmt.Print("   ")
+		if game.board.nodes[i+34].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+34].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("    ")
+	for i := 49; i < 54; i++ {
+		if game.board.edges[i].road == -1 {
+			none.Print("|")
+		} else {
+			playerColor[game.board.edges[i].road].Print("|")
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("    ")
+	if game.board.nodes[38].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[38].owner].Print("*   ")
+	}
+	for i := 0; i < 4; i++ {
+		fmt.Printf("%-2d", game.board.tiles[i+13].roll)
+		fmt.Print("  ")
+		if game.board.nodes[i+39].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+39].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("      ")
+	for i := 54; i < 62; i++ {
+		if game.board.edges[i].road == -1 {
+			if i%2 == 0 {
+				none.Print("/")
+			} else {
+				none.Print("\\")
+			}
+		} else {
+			if i%2 == 0 {
+				playerColor[game.board.edges[i].road].Print("/")
+			} else {
+				playerColor[game.board.edges[i].road].Print("\\")
+			}
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("        ")
+	if game.board.nodes[43].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[43].owner].Print("*   ")
+	}
+	for i := 0; i < 3; i++ {
+		fmt.Print(game.board.tiles[i+16].res)
+		fmt.Print("   ")
+		if game.board.nodes[i+44].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+44].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("        ")
+	for i := 62; i < 66; i++ {
+		if game.board.edges[i].road == -1 {
+			none.Print("|")
+		} else {
+			playerColor[game.board.edges[i].road].Print("|")
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("        ")
+	if game.board.nodes[47].owner == -1 {
+		none.Print("*   ")
+	} else {
+		playerColor[game.board.nodes[47].owner].Print("*   ")
+	}
+	for i := 0; i < 3; i++ {
+		fmt.Printf("%-2d", game.board.tiles[i+16].roll)
+		fmt.Print("  ")
+		if game.board.nodes[i+48].owner == -1 {
+			none.Print("*   ")
+		} else {
+			playerColor[game.board.nodes[i+48].owner].Print("*   ")
+		}
+	}
+	fmt.Print("\n")
+
+	fmt.Print("          ")
+	for i := 66; i < 73; i++ {
+		if game.board.edges[i].road == -1 {
+			if i%2 != 0 {
+				none.Print("/")
+			} else {
+				none.Print("\\")
+			}
+		} else {
+			if i%2 != 0 {
+				playerColor[game.board.edges[i].road].Print("/")
+			} else {
+				playerColor[game.board.edges[i].road].Print("\\")
+			}
+		}
+		fmt.Printf("%d", game.board.edges[i].index) // !Remove
+		fmt.Print("   ")
+	}
+	fmt.Print("\n")
+
+	fmt.Print("            ")
+	for i := len(game.board.nodes) - 3; i < len(game.board.nodes); i++ {
+		if game.board.nodes[i].owner == -1 {
+			none.Print("*")
+		} else {
+			playerColor[game.board.nodes[i].owner].Print("*")
+		}
+		fmt.Print("       ")
+	}
+	fmt.Print("\n")
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 )
@@ -11,7 +12,11 @@ const (
 
 func main() {
 	// Game setup
-	game := newGame()
+	game := newGame(false)
+	for i := 0; i < len(game.board.edges); i++ {
+		fmt.Printf("%2d: %d \n", game.board.edges[i].index, len(game.board.edges[i].nodes))
+	}
+	PrintGame(game)
 	var i int
 	for i = 0; i < len(game.players); i++ {
 		placeStart(&game.board, game.players[i])
@@ -30,6 +35,7 @@ func main() {
 
 		move := play(game.players[curInd], game)
 		game = playMove(move, *game.players[curInd], game)
+		PrintGame(game)
 	}
 }
 
@@ -40,15 +46,15 @@ func play(player *Player, game Game) Move {
 	var moves []*Move
 	var wg sync.WaitGroup
 	// Road case
-	if player.res["cl"] >= 1 && player.res["wo"] >= 1 {
+	if player.res["C"] >= 1 && player.res["L"] >= 1 {
 		for i := 0; i < len(player.roads); i++ {
 			for j := 0; j < 3; j++ {
 				if player.roads[i].nodes[0].edges[j].inUse && player.roads[i].nodes[0].edges[j].road == 0 {
 					m := Move{}
 					moves = append(moves, &m)
 
-					m.cost["cl"] += 1
-					m.cost["wo"] += 1
+					m.cost["C"] += 1
+					m.cost["L"] += 1
 					m.newEdges = append(m.newEdges, Edge{
 						inUse: true,
 						index: player.roads[i].nodes[0].edges[j].index,
@@ -62,8 +68,8 @@ func play(player *Player, game Game) Move {
 					m := Move{}
 					moves = append(moves, &m)
 
-					m.cost["cl"] += 1
-					m.cost["wo"] += 1
+					m.cost["C"] += 1
+					m.cost["L"] += 1
 					m.newEdges = append(m.newEdges, Edge{
 						inUse: true,
 						index: player.roads[i].nodes[1].edges[j].index,
@@ -77,16 +83,16 @@ func play(player *Player, game Game) Move {
 		}
 	}
 	// Settlement case
-	if player.res["cl"] >= 1 && player.res["wh"] >= 1 && player.res["sh"] >= 1 && player.res["wo"] >= 1 {
+	if player.res["C"] >= 1 && player.res["W"] >= 1 && player.res["S"] >= 1 && player.res["L"] >= 1 {
 		for i := 0; i < len(player.roads); i++ {
 			if isBuildable(player.roads[i].nodes[0]) {
 				m := Move{}
 				moves = append(moves, &m)
 
-				m.cost["cl"] += 1
-				m.cost["wh"] += 1
-				m.cost["sh"] += 1
-				m.cost["wo"] += 1
+				m.cost["C"] += 1
+				m.cost["W"] += 1
+				m.cost["S"] += 1
+				m.cost["L"] += 1
 				m.newNodes = append(m.newNodes, Node{
 					index:    player.roads[i].nodes[0].index,
 					building: 1,
@@ -101,10 +107,10 @@ func play(player *Player, game Game) Move {
 				m := Move{}
 				moves = append(moves, &m)
 
-				m.cost["cl"] += 1
-				m.cost["wh"] += 1
-				m.cost["sh"] += 1
-				m.cost["wo"] += 1
+				m.cost["C"] += 1
+				m.cost["W"] += 1
+				m.cost["S"] += 1
+				m.cost["L"] += 1
 				m.newNodes = append(m.newNodes, Node{
 					index:    player.roads[i].nodes[1].index,
 					building: 1,
@@ -118,13 +124,13 @@ func play(player *Player, game Game) Move {
 		}
 	}
 	// City case
-	if player.res["wh"] >= 2 && player.res["ir"] >= 3 {
+	if player.res["W"] >= 2 && player.res["O"] >= 3 {
 		for i := 0; i < len(player.villages); i++ {
 			m := Move{}
 			moves = append(moves, &m)
 
-			m.cost["wh"] = 2
-			m.cost["ir"] = 3
+			m.cost["W"] = 2
+			m.cost["O"] = 3
 			m.newNodes = append(m.newNodes, Node{
 				index:    player.villages[i].index,
 				building: 2,
@@ -136,12 +142,21 @@ func play(player *Player, game Game) Move {
 			go continueMove(&wg, player, game, &m, 0)
 		}
 	}
-	// Card case
-	if player.res["sh"] >= 1 && player.res["wh"] >= 1 && player.res["ir"] >= 1 {
+	// Buy Card case
+	if player.res["S"] >= 1 && player.res["W"] >= 1 && player.res["O"] >= 1 {
 
+	}
+	// Play card case
+	for i := 0; i < len(player.cards); i++ {
+		m := Move{}
+		m.card = player.cards[i]
+		wg.Add(1)
+		g := playMove(m, *player, game)
+		go continueMove(&wg, game.players[player.number], g, &m, 0)
 	}
 	// Pass
 	m := Move{}
+	m.heur = heuristic(game, *player)
 	moves = append(moves, &m)
 	nextPlayer := player.number + 1
 	if nextPlayer > 3 {
@@ -166,7 +181,7 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 	var moves []*Move
 	var wg2 sync.WaitGroup
 	// Road case
-	if player.res["cl"]-move.cost["cl"] >= 1 && player.res["wo"]-move.cost["wo"] >= 1 {
+	if player.res["C"]-move.cost["C"] >= 1 && player.res["L"]-move.cost["L"] >= 1 {
 		for i := 0; i < len(player.roads); i++ {
 			for j := 0; j < 3; j++ {
 				found1 := false
@@ -180,11 +195,11 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 					}
 				}
 				if player.roads[i].nodes[0].edges[j].inUse && player.roads[i].nodes[0].edges[j].road == 0 && !found1 {
-					m := Move{}
+					m := *move
 					moves = append(moves, &m)
 
-					m.cost["cl"] += 1
-					m.cost["wo"] += 1
+					m.cost["C"] += 1
+					m.cost["L"] += 1
 					m.newEdges = append(m.newEdges, Edge{
 						inUse: true,
 						index: player.roads[i].nodes[0].edges[j].index,
@@ -195,11 +210,11 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 					go continueMove(&wg2, player, game, &m, depth)
 				}
 				if player.roads[i].nodes[1].edges[j].inUse && player.roads[i].nodes[1].edges[j].road == 0 && !found2 {
-					m := Move{}
+					m := *move
 					moves = append(moves, &m)
 
-					m.cost["cl"] += 1
-					m.cost["wo"] += 1
+					m.cost["C"] += 1
+					m.cost["L"] += 1
 					m.newEdges = append(m.newEdges, Edge{
 						inUse: true,
 						index: player.roads[i].nodes[1].edges[j].index,
@@ -213,8 +228,8 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 		}
 	}
 	// Settlement case
-	if player.res["cl"]-move.cost["cl"] >= 1 && player.res["wh"]-move.cost["wh"] >= 1 &&
-		player.res["sh"]-move.cost["sh"] >= 1 && player.res["wo"]-move.cost["wo"] >= 1 {
+	if player.res["C"]-move.cost["C"] >= 1 && player.res["W"]-move.cost["W"] >= 1 &&
+		player.res["S"]-move.cost["S"] >= 1 && player.res["L"]-move.cost["L"] >= 1 {
 		for i := 0; i < len(player.roads); i++ {
 			found1 := false
 			found2 := false
@@ -227,13 +242,13 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 				}
 			}
 			if isBuildable(player.roads[i].nodes[0]) && !found1 {
-				m := Move{}
+				m := *move
 				moves = append(moves, &m)
 
-				m.cost["cl"] += 1
-				m.cost["wh"] += 1
-				m.cost["sh"] += 1
-				m.cost["wo"] += 1
+				m.cost["C"] += 1
+				m.cost["W"] += 1
+				m.cost["S"] += 1
+				m.cost["L"] += 1
 				m.newNodes = append(m.newNodes, Node{
 					index:    player.roads[i].nodes[0].index,
 					building: 1,
@@ -248,10 +263,10 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 				m := Move{}
 				moves = append(moves, &m)
 
-				m.cost["cl"] += 1
-				m.cost["wh"] += 1
-				m.cost["sh"] += 1
-				m.cost["wo"] += 1
+				m.cost["C"] += 1
+				m.cost["W"] += 1
+				m.cost["S"] += 1
+				m.cost["L"] += 1
 				m.newNodes = append(m.newNodes, Node{
 					index:    player.roads[i].nodes[1].index,
 					building: 1,
@@ -265,7 +280,7 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 		}
 	}
 	// City case
-	if player.res["wh"]-move.cost["wh"] >= 2 && player.res["ir"]-move.cost["ir"] >= 3 {
+	if player.res["W"]-move.cost["W"] >= 2 && player.res["O"]-move.cost["O"] >= 3 {
 		for i := 0; i < len(player.villages); i++ {
 			found := false
 			for j := 0; j < len(move.newNodes); j++ {
@@ -275,11 +290,11 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 				}
 			}
 			if !found {
-				m := Move{}
+				m := *move
 				moves = append(moves, &m)
 
-				m.cost["wh"] = 2
-				m.cost["ir"] = 3
+				m.cost["W"] = 2
+				m.cost["O"] = 3
 				m.newNodes = append(m.newNodes, Node{
 					index:    player.villages[i].index,
 					building: 2,
@@ -293,15 +308,25 @@ func continueMove(wg *sync.WaitGroup, player *Player, game Game, move *Move, dep
 		}
 	}
 	// Pass
-	m := Move{}
+	m := *move
 	moves = append(moves, &m)
 	nextPlayer := player.number + 1
 	if nextPlayer > 3 {
 		nextPlayer = 0
 	}
-	// TODO: DO COMPLETE COPY OF GAME INTO newGAME
-	newGame := game
+	newGame := playMove(*move, *player, game)
+
+	m.heur = heuristic(newGame, *player)
 	go predict(&wg2, *game.players[nextPlayer], player.number, newGame, depth, &m.heur)
+
+	greatestind := 0
+	for i := 0; i < len(moves); i++ {
+		if moves[i].heur > moves[greatestind].heur {
+			greatestind = i
+		}
+	}
+
+	*move = *moves[greatestind]
 }
 
 func humanPlay() Move {
@@ -311,9 +336,138 @@ func humanPlay() Move {
 func predict(wg *sync.WaitGroup, player Player, hostID int, game Game, depth int, res *float32) {
 	defer wg.Done()
 	if depth == maxdepth {
-		*res = 0
 		return
 	}
+
+	var moves []*Move
+	var wg2 sync.WaitGroup
+	// Road case
+	if player.res["C"] >= 1 && player.res["L"] >= 1 {
+		for i := 0; i < len(player.roads); i++ {
+			for j := 0; j < 3; j++ {
+				if player.roads[i].nodes[0].edges[j].inUse && player.roads[i].nodes[0].edges[j].road == 0 {
+					m := Move{}
+					moves = append(moves, &m)
+
+					m.cost["C"] += 1
+					m.cost["L"] += 1
+					m.newEdges = append(m.newEdges, Edge{
+						inUse: true,
+						index: player.roads[i].nodes[0].edges[j].index,
+						nodes: player.roads[i].nodes[0].edges[j].nodes,
+						road:  player.number,
+					})
+					wg2.Add(1)
+					go continueMove(&wg2, &player, game, &m, depth)
+				}
+				if player.roads[i].nodes[1].edges[j].inUse && player.roads[i].nodes[1].edges[j].road == 0 {
+					m := Move{}
+					moves = append(moves, &m)
+
+					m.cost["C"] += 1
+					m.cost["L"] += 1
+					m.newEdges = append(m.newEdges, Edge{
+						inUse: true,
+						index: player.roads[i].nodes[1].edges[j].index,
+						nodes: player.roads[i].nodes[1].edges[j].nodes,
+						road:  player.number,
+					})
+					wg2.Add(1)
+					go continueMove(&wg2, &player, game, &m, depth)
+				}
+			}
+		}
+	}
+	// Settlement case
+	if player.res["C"] >= 1 && player.res["W"] >= 1 && player.res["S"] >= 1 && player.res["L"] >= 1 {
+		for i := 0; i < len(player.roads); i++ {
+			if isBuildable(player.roads[i].nodes[0]) {
+				m := Move{}
+				moves = append(moves, &m)
+
+				m.cost["C"] += 1
+				m.cost["W"] += 1
+				m.cost["S"] += 1
+				m.cost["L"] += 1
+				m.newNodes = append(m.newNodes, Node{
+					index:    player.roads[i].nodes[0].index,
+					building: 1,
+					owner:    player.number,
+					edges:    player.roads[i].nodes[0].edges,
+					tiles:    player.roads[i].nodes[0].tiles,
+				})
+				wg2.Add(1)
+				go continueMove(&wg2, &player, game, &m, depth)
+			}
+			if isBuildable(player.roads[i].nodes[1]) {
+				m := Move{}
+				moves = append(moves, &m)
+
+				m.cost["C"] += 1
+				m.cost["W"] += 1
+				m.cost["S"] += 1
+				m.cost["L"] += 1
+				m.newNodes = append(m.newNodes, Node{
+					index:    player.roads[i].nodes[1].index,
+					building: 1,
+					owner:    player.number,
+					edges:    player.roads[i].nodes[1].edges,
+					tiles:    player.roads[i].nodes[1].tiles,
+				})
+				wg2.Add(1)
+				go continueMove(&wg2, &player, game, &m, depth)
+			}
+		}
+	}
+	// City case
+	if player.res["W"] >= 2 && player.res["O"] >= 3 {
+		for i := 0; i < len(player.villages); i++ {
+			m := Move{}
+			moves = append(moves, &m)
+
+			m.cost["W"] = 2
+			m.cost["O"] = 3
+			m.newNodes = append(m.newNodes, Node{
+				index:    player.villages[i].index,
+				building: 2,
+				owner:    player.villages[i].owner,
+				edges:    player.villages[i].edges,
+				tiles:    player.villages[i].tiles,
+			})
+			wg2.Add(1)
+			go continueMove(&wg2, &player, game, &m, depth)
+		}
+	}
+	// Pass
+	m := Move{}
+	m.heur = heuristic(game, player)
+	moves = append(moves, &m)
+	nextPlayer := player.number + 1
+	if nextPlayer > 3 {
+		nextPlayer = 0
+	}
+	go predict(&wg2, *game.players[nextPlayer], player.number, game, depth+1, &m.heur)
+
+	wg2.Wait()
+	bestVal := moves[0].heur
+	bestInd := 0
+	for i := 1; i < len(moves); i++ {
+		if moves[i].heur > bestVal {
+			bestVal = moves[i].heur
+			bestInd = i
+		}
+	}
+	h := heuristic(playMove(*moves[bestInd], player, game), player)
+	if player.number == hostID {
+		*res += h
+	} else {
+		*res -= h
+	}
+}
+
+func heuristic(g Game, p Player) float32 {
+
+	return 0.0
 }
 
 func playMove(move Move, p Player, g Game) Game {
@@ -393,14 +547,18 @@ func isBuildable(node *Node) bool {
 		return false
 	}
 	for i := 0; i < len(node.edges); i++ {
-		if node.edges[i].nodes[0].index != node.index {
-			if node.edges[i].nodes[0].building != 0 {
-				return false
+		if node.edges[i].inUse {
+			if node.edges[i].nodes[0].index != node.index {
+				if node.edges[i].nodes[0].building != 0 {
+					return false
+				}
+			} else {
+				if node.edges[i].nodes[1].building != 0 {
+					return false
+				}
 			}
 		} else {
-			if node.edges[i].nodes[1].building != 0 {
-				return false
-			}
+			return false
 		}
 	}
 	return true
@@ -412,15 +570,19 @@ func settleHeur(wg *sync.WaitGroup, board *Board, node *Node, player *Player, he
 		*heur = 0
 	}
 	var count int32
-	var explored map[int]bool
+	explored := make(map[int]bool)
 	var wg2 sync.WaitGroup
 	var mut sync.Mutex
 	wg2.Add(1)
 	searchVil(&wg2, &mut, node, 4, &count, &explored)
 	wg2.Wait()
-	var res map[string]float32
+	res := make(map[string]float32)
 	for i := 0; i < len(node.tiles); i++ {
-		res[node.tiles[i].res] += diceOdds[node.tiles[i].roll-1]
+		if _, ok := res[node.tiles[i].res]; !ok {
+			res[node.tiles[i].res] = diceOdds[node.tiles[i].roll-1]
+		} else {
+			res[node.tiles[i].res] += diceOdds[node.tiles[i].roll-1]
+		}
 	}
 	for i := 0; i < len(player.villages); i++ {
 		for j := 0; j < len(player.villages[i].tiles); j++ {
