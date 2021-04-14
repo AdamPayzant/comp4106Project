@@ -86,6 +86,7 @@ type Player struct {
 	cards []string
 
 	knightsPlayed int
+	longestRoad   int
 }
 
 type Move struct {
@@ -93,8 +94,10 @@ type Move struct {
 	newEdges []Edge
 
 	cost        map[string]int
+	gain        map[string]int
 	card        string
 	cardsBought int
+	moveDepth   int
 
 	heur float32
 }
@@ -103,7 +106,7 @@ type Game struct {
 	players [4]*Player
 	board   Board
 
-	cards [26]string
+	cards []string
 
 	longestRoad int
 	lrPlayer    int
@@ -189,6 +192,7 @@ func NewBoard() Board {
 	var nodes [][]*Node
 	var edges []*Edge
 	edgeCounter := 0
+	nodeCounter := 0
 	for i := 0; i < len(rowlens); i++ {
 		temp := []*Node{}
 		if i == 0 { // First row
@@ -208,7 +212,8 @@ func NewBoard() Board {
 					sum += rowoff[i]
 				}
 				n.tiles = t
-				n.index = i + sum
+				n.index = nodeCounter
+				nodeCounter++
 
 				if j == 0 {
 					edge1 := Edge{} // Unused
@@ -293,7 +298,8 @@ func NewBoard() Board {
 					sum += rowoff[i]
 				}
 				n.tiles = t
-				n.index = i + sum
+				n.index = nodeCounter
+				nodeCounter++
 
 				if j == 0 {
 					edge1 := Edge{} // Unused
@@ -382,7 +388,8 @@ func NewBoard() Board {
 					sum += rowoff[i]
 				}
 				n.tiles = t
-				n.index = i + sum
+				n.index = nodeCounter
+				nodeCounter++
 
 				if j == 0 {
 					edge1 := Edge{} // Unused
@@ -482,7 +489,8 @@ func NewBoard() Board {
 					sum += rowoff[i]
 				}
 				n.tiles = t
-				n.index = i + sum
+				n.index = nodeCounter
+				nodeCounter++
 
 				if j == 0 {
 					edge1 := Edge{} // Unused
@@ -575,7 +583,8 @@ func NewBoard() Board {
 					sum += rowoff[i]
 				}
 				n.tiles = t
-				n.index = i + sum
+				n.index = nodeCounter
+				nodeCounter++
 
 				if j == 0 {
 					edge1 := Edge{} // Unused
@@ -686,19 +695,80 @@ func newGame(human bool) Game {
 		j := rand.Intn(i + 1)
 		cards[i], cards[j] = cards[j], cards[i]
 	}
-	game.cards = cards
+	game.cards = cards[:]
+	game.longestRoad = 5
+	game.lrPlayer = -1
+	game.largestArmy = 3
+	game.laPlayer = -1
+
+	temp := make(map[string]int)
+	temp["L"] = 0
+	temp["O"] = 0
+	temp["W"] = 0
+	temp["B"] = 0
+	temp["S"] = 0
 
 	game.players = [...]*Player{
-		&Player{},
-		&Player{},
-		&Player{},
-		&Player{},
+		{
+			human:         false,
+			victoryPoints: 2,
+			number:        0,
+			knightsPlayed: 0,
+			longestRoad:   1,
+			res:           temp,
+		},
+		{
+			human:         false,
+			victoryPoints: 2,
+			number:        1,
+			knightsPlayed: 0,
+			longestRoad:   1,
+			res:           temp,
+		},
+		{
+			human:         false,
+			victoryPoints: 2,
+			number:        2,
+			knightsPlayed: 0,
+			longestRoad:   1,
+			res:           temp,
+		},
+		{
+			human:         false,
+			victoryPoints: 2,
+			number:        3,
+			knightsPlayed: 0,
+			longestRoad:   1,
+			res:           temp,
+		},
 	}
 	if human {
 		game.players[rand.Intn(4)].human = true
 	}
 
 	return game
+}
+
+func newMove() Move {
+	temp := make(map[string]int)
+	temp["L"] = 0
+	temp["O"] = 0
+	temp["W"] = 0
+	temp["B"] = 0
+	temp["S"] = 0
+	temp2 := make(map[string]int)
+	temp2["L"] = 0
+	temp2["O"] = 0
+	temp2["W"] = 0
+	temp2["B"] = 0
+	temp2["S"] = 0
+	m := Move{
+		cost:      temp,
+		gain:      temp2,
+		heur:      0,
+		moveDepth: 0,
+	}
+	return m
 }
 
 // We also don't need to talk about this one
@@ -713,7 +783,7 @@ func PrintGame(game Game) {
 		color.New(color.FgGreen),
 	}
 	fmt.Println("Player colors are:")
-	for i := -1; i < len(playerColor)-1; i++ {
+	for i := 0; i < len(playerColor)-1; i++ {
 		playerColor[i+1].Printf("Player %d \n", i)
 	}
 
